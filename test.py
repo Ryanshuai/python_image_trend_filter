@@ -1,22 +1,14 @@
 # Import packages.
 import cvxpy as cp
 import numpy as np
+import scipy
 
-# Generate data.
-m = 2
-n = 3
-np.random.seed(1)
-A = np.random.randn(m, n)
-b = np.random.randn(m)
+n = 5
 
-# Define and solve the CVXPY problem.
-x = cp.Variable(n)
-cost = cp.sum_squares(A*x - b)
-prob = cp.Problem(cp.Minimize(cost))
-prob.solve()
+up_paradiagonal = np.zeros((n, n))
+for i in range(n - 1):
+    up_paradiagonal[i][i + 1] = 1
+down_paradiagonal = up_paradiagonal.transpose()
 
-# Print result.
-print("\nThe optimal value is", prob.value)
-print("The optimal x is")
-print(x.value)
-print("The norm of the residual is ", cp.norm(A*x - b, p=2).value)
+print(up_paradiagonal)
+print(down_paradiagonal)
