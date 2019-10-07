@@ -1,6 +1,7 @@
 
 import cvxpy as cp
 import numpy as np
+import cv2
 
 
 class Trend_Fiter_2D:
@@ -18,6 +19,10 @@ class Trend_Fiter_2D:
         for i in range(self.n-1):
             up_right_paradiagonal[i][i+1] = 1
         down_left_paradiagonal = up_right_paradiagonal.transpose()
+
+        if self.k == 1:
+            up_right_paradiagonal /= 4
+            down_left_paradiagonal /= 4
 
         minus_up_right = np.eye(self.n)-down_left_paradiagonal
         minus_down_left = np.eye(self.n)-up_right_paradiagonal
@@ -54,12 +59,19 @@ class Trend_Fiter_2D:
         # Define and solve the CVXPY problem.
         X = cp.Variable((self.n, self.n))
 
-        diff_up = cp.norm(self.minus_up * X , 1)
-        diff_down = cp.norm(self.minus_down * X , 1)
-        diff_left = cp.norm(X * self.minus_left, 1)
-        diff_right = cp.norm(X * self.minus_right, 1)
+        if self.k == 0:
+            diff_up = cp.norm(self.minus_up * X , 1)
+            diff_down = cp.norm(self.minus_down * X , 1)
+            diff_left = cp.norm(X * self.minus_left, 1)
+            diff_right = cp.norm(X * self.minus_right, 1)
 
-        obj = 0.5 * cp.sum_squares(Y - X) + vlambda * (diff_up+diff_down+diff_left+diff_right)
+            obj = 0.5 * cp.sum_squares(Y - X) + vlambda *(diff_up+diff_down+diff_left+diff_right)
+        elif self.k == 1:
+            kernel = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+            Y_adjacent_mean = cv2.filter2D(Y, -1, kernel / np.sum(kernel))
+            obj = 0.5 * cp.sum_squares(Y - X) + vlambda * np.sum(kernel) * cp.norm(X - Y_adjacent_mean, 1)
+        else:
+            raise('not imply error')
 
         prob = cp.Problem(cp.Minimize(obj))
         prob.solve()
